@@ -1,4 +1,7 @@
 """
+LICENSE: MIT
+> https://github.com/art-r/tex-to-txt
+
 Script that helps in the process of checking grammar
 and spelling checks of latex files by removing
 all latex specific items and only printing out the
