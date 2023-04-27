@@ -18,6 +18,7 @@ Call the script from the command line with the following arguments:
 
 The desired-out-path determines the location for the resulting txt file
 """
+import argparse
 import os
 import re
 import sys
@@ -26,7 +27,7 @@ import sys
 def read_file(path):
     """
     Internal helper file that reads in the latex file
-    It will drop all special elements that start with "\begin{"
+    It will drop all special elements that start with "\\begin{"
     @parameters
         path (str): path to the tex file
     @returns:
@@ -67,6 +68,32 @@ def read_file(path):
     return content
 
 
+def define_expressions(args):
+    if args.expressions == 'default':
+        return [
+            "\\ac{",
+            "\\acs{",
+            "\\acf{",
+            "\\acp{",
+            "\\acfp{",
+            "\\emph{"
+            "\\enquote{",
+            "\\chapter{",
+            "\\section{",
+            "\\subsection{",
+            "\\(",
+            "\\)",
+            "}",  # this is important to remove remaining open brackets
+            "$"
+        ]
+
+    if not os.path.isfile(args.expressions):
+        raise FileNotFoundError
+
+    with open(args.expressions, 'r') as reader:
+        return [line for line in reader.readlines()]
+
+
 def drop_expression(expression, replacer, data):
     """
     Internal helper function that substitutes a given expression
@@ -80,7 +107,7 @@ def drop_expression(expression, replacer, data):
     return [line.replace(expression, replacer) for line in data]
 
 
-def main(file_path, out_path):
+def main(file_path, out_path, args):
     """
     Main entry point of the script
     @parameter:
@@ -93,27 +120,18 @@ def main(file_path, out_path):
     data = read_file(file_path)
 
     # all the other expressions to remove
-    expressions = [
-        "\\ac{",
-        "\\acs{",
-        "\\enquote{",
-        "\\chapter{",
-        "\\section{",
-        "\\subsection{",
-        "}", # this is important to remove remaining open brackets
-        "$"
-    ]
+    expressions = define_expressions(args)
 
     # replace references and labels
     data = [re.sub(r"\\ref{.*}", "<Referenz entfernt>", line) for line in data]
     data = [re.sub(r"\\label{.*}", "", line) for line in data]
 
     # replace cite and footnotes
-    data = [re.sub(r"\\footcite\[.*\]{.*}", "", line) for line in data]
-    data = [re.sub(r"\\footnotetext{.*}", "", line) for line in data]
-    data = [re.sub(r"\\footnote{.*}", "", line) for line in data]
-    data = [re.sub(r"\\cite{.*}", "", line) for line in data]
-    data = [re.sub(r"\\cite\[.*\]{.*}", "", line) for line in data]
+    data = [re.sub(r"\\footcite\[.*?\]{.*?}", "", line) for line in data]
+    data = [re.sub(r"\\footnotetext{.*?}", "", line) for line in data]
+    data = [re.sub(r"\\footnote{.*?}", "", line) for line in data]
+    data = [re.sub(r"\\cite{.*?}", "", line) for line in data]
+    data = [re.sub(r"\\cite\[.*?\]{.*?}", "", line) for line in data]
 
     # drop all other expressions
     for expression in expressions:
@@ -125,6 +143,7 @@ def main(file_path, out_path):
             out_file.write(line)
             out_file.write("\n")
 
+
 if __name__ == "__main__":
     try:
         TEX_PATH = sys.argv[1]
@@ -133,9 +152,12 @@ if __name__ == "__main__":
         raise key_error
 
     try:
-        txt_out_path = sys.argv[2]
+        TXT_OUT_PATH = sys.argv[2]
     except KeyError as key_error:
         print("Missing saving path to file as second argument!")
         raise key_error
 
-    main(TEX_PATH, txt_out_path)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-e', '--expressions', dest='expressions', help='path containing expressions', default='default')
+
+    main(TEX_PATH, TXT_OUT_PATH, parser.parse_args())
