@@ -21,7 +21,6 @@ The desired-out-path determines the location for the resulting txt file
 import argparse
 import os
 import re
-import sys
 
 
 def read_file(path):
