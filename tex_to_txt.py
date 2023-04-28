@@ -26,12 +26,14 @@ import sys
 
 def read_file(path):
     """
-    Internal helper file that reads in the latex file
-    It will drop all special elements that start with "\\begin{"
-    @parameters
-        path (str): path to the tex file
-    @returns:
-        data (list): every line of the tex file is on item in the list
+    Internal helper file that reads in the latex file.
+    It will drop all special elements that start with "\\begin{".
+
+    :param path: path to the tex file
+    :type path: str
+
+    :return: every line of the tex file is on item in the list
+    :rtype: list[str]
     """
     # Check if the file exists
     if not os.path.isfile(path):
@@ -69,55 +71,73 @@ def read_file(path):
 
 
 def define_expressions(args):
-    if args.expressions == 'default':
-        return [
-            "\\ac{",
-            "\\acs{",
-            "\\acf{",
-            "\\acp{",
-            "\\acfp{",
-            "\\emph{"
-            "\\enquote{",
-            "\\chapter{",
-            "\\section{",
-            "\\subsection{",
-            "\\(",
-            "\\)",
-            "}",  # this is important to remove remaining open brackets
-            "$"
-        ]
+    """
+    Loads the defined expressions.
 
+    :param args: contains variables tex_path, out_path, expressions, additional
+    :var str args.tex_path:  path to the tex file
+    :var str args.out_path: path to the desired location for the output txt file
+    :var str args.expressions: path to a txt file containing additional expressions
+    :var bool args.additional: whether or not the expressions provided in the expressions file should be used as
+        additional or as the only expressions
+    """
+    # load defaults
+    try:
+        with open('./defaults.txt', 'r') as reader:
+            defaults = [line.rstrip('\n') for line in reader.readlines()]
+    except FileNotFoundError as fnf:
+        print(f"An error occurred: {str(fnf)}")
+
+    # use only defaults
+    if args.expressions == 'default':
+        return defaults
+
+    # expressions file does not exist
     if not os.path.isfile(args.expressions):
         raise FileNotFoundError
 
+    # loads additional expressions
     with open(args.expressions, 'r') as reader:
-        return [line for line in reader.readlines()]
+        # as additionals
+        if args.additional:
+            return [line for line in reader.readlines()] + defaults
+        # as all expressions used
+        else:
+            return [line for line in reader.readlines()] + ["}"]
 
 
 def drop_expression(expression, replacer, data):
     """
     Internal helper function that substitutes a given expression
-    @parameters:
-        expression (str): the expression to match
-        replacer (str): the replacing string/content
-        data (list): the data list containing all the tex content
-    @returns:
-        list containing all the filtered tex content
+
+    :param str expression: the expression to match
+    :param str replacer: the replacing string/content
+    :param list data: the data list containing all the tex content
+
+    :returns list: list containing all the filtered tex content
+
     """
     return [line.replace(expression, replacer) for line in data]
 
 
-def main(file_path, out_path, args):
+def main(args):
     """
     Main entry point of the script
-    @parameter:
-        file_path (str): path to the tex file
-        out_path (str): path to the desired location for the output txt file
+
+    :param args: contains variables tex_path, out_path, expressions, additional
+    :var str args.tex_path:  path to the tex file
+    :var str args.out_path: path to the desired location for the output txt file
+    :var str args.expressions: path to a txt file containing additional expressions
+    :var bool args.additional: whether or not the expressions provided in the expressions file should be used as
+        additional or as the only expressions
     """
     # read the tex file in
     # while reading the file in all comments, tables, graphics etc.
     # will be already skipped
-    data = read_file(file_path)
+    if not os.path.isfile(args.tex_path):
+        raise FileNotFoundError
+
+    data = read_file(args.tex_path)
 
     # all the other expressions to remove
     expressions = define_expressions(args)
@@ -137,27 +157,23 @@ def main(file_path, out_path, args):
     for expression in expressions:
         data = drop_expression(expression, "", data)
 
+    # if the directory to the save file does not exist, it is created
+    if not os.path.exists(os.path.dirname(args.out_path)):
+        os.makedirs(os.path.dirname(args.out_path))
     # save the file
-    with open(out_path, mode="w", encoding="utf-8") as out_file:
+    with open(args.out_path, mode="w", encoding="utf-8") as out_file:
         for line in data:
             out_file.write(line)
             out_file.write("\n")
 
 
 if __name__ == "__main__":
-    try:
-        TEX_PATH = sys.argv[1]
-    except KeyError as key_error:
-        print("Missing path to file as first argument!")
-        raise key_error
-
-    try:
-        TXT_OUT_PATH = sys.argv[2]
-    except KeyError as key_error:
-        print("Missing saving path to file as second argument!")
-        raise key_error
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('-e', '--expressions', dest='expressions', help='path containing expressions', default='default')
+    parser.add_argument('tex_path', help='the path to the tex file')
+    parser.add_argument('out_path', help='path to the ouput text file')
+    parser.add_argument('-e', '--expressions', dest='expressions', help='path containing expressions',
+                        default='default')
+    parser.add_argument('-a', '--additional', dest='additional',
+                        help='use the provided file in addition to the default expressions', action='store_true')
 
-    main(TEX_PATH, TXT_OUT_PATH, parser.parse_args())
+    main(parser.parse_args())

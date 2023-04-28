@@ -29,11 +29,26 @@ into a spell checker of your choice (e.g. word, online check etc.).
     - subsection
 - save the output as a `.txt` file
 
+## Expressions
+
+A list of standard expressions is predefined. You can find them [here](defaults.txt). Additionaly you can define a txt-file with your own expressions, either to use alongside, or as a replacement for the defaults.
 
 ## How to run
 
 Run from your commandline with:
 
 ```bash
-python3 tex_to_txt.py <path-to-txt-file.tex> <desired-out-path-and-name.txt>
+python3 tex_to_txt.py [-h] [-e EXPRESSIONS] [-a] tex_path out_path
+```
+
+```
+positional arguments:
+tex_path              the path to the tex file
+out_path              path to the ouput text file
+
+options:
+-h, --help            show this help message and exit
+-e EXPRESSIONS, --expressions EXPRESSIONS
+path containing expressions
+-a, --additional      use the provided file in addition to the default expressions
 ```
