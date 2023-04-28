@@ -42,10 +42,10 @@ def read_file(path):
     # placeholder for the contet
     content = []
     # special flag that is used for ignoring special elements
-    special_flag = True
+    special_flag = False
 
     with open(path, mode="r", encoding="utf-8") as in_file:
-        for line in in_file:
+        for line in in_file.readlines():
             # Skip comments
             if line.startswith("%"):
                 continue
@@ -141,16 +141,17 @@ def main(args):
     # all the other expressions to remove
     expressions = define_expressions(args)
 
-    # replace references and labels
-    data = [re.sub(r"\\ref{.*}", "<Referenz entfernt>", line) for line in data]
-    data = [re.sub(r"\\label{.*}", "", line) for line in data]
-
     # replace cite and footnotes
     data = [re.sub(r"\\footcite\[.*?\]{.*?}", "", line) for line in data]
     data = [re.sub(r"\\footnotetext{.*?}", "", line) for line in data]
     data = [re.sub(r"\\footnote{.*?}", "", line) for line in data]
     data = [re.sub(r"\\cite{.*?}", "", line) for line in data]
     data = [re.sub(r"\\cite\[.*?\]{.*?}", "", line) for line in data]
+    data = [re.sub(r"\\input{.*?}", "", line) for line in data]
+
+    # replace references and labels
+    data = [re.sub(r"\\ref{.*}", "<Referenz entfernt>", line) for line in data]
+    data = [re.sub(r"\\label{.*}", "", line) for line in data]
 
     # drop all other expressions
     for expression in expressions:
